@@ -1,0 +1,3 @@
+pros : handling reconnect, has pool of channels for blocking operations with server. also pool of channels gives more throughput on single connection
+cons: ack on each delivery (wanna to make ack after all prefetch received)
+todo: wanna add non blocking and non safe publish
