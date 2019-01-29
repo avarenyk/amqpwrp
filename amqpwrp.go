@@ -82,11 +82,7 @@ func (f *ConsumeConfig) create(c *connection, chanReopen chan bool) {
 		processError, requeue := f.Callback(d)
 		if processError != nil {
 			log.Printf("[amqpwrp] error on processing msg : %s \n", processError)
-			if requeue {
-				err = d.Nack(false, true)
-			} else {
-				err = d.Nack(false, false)
-			}
+			err = d.Nack(false, requeue)
 		} else {
 			err = d.Ack(false)
 		}
@@ -105,9 +101,8 @@ type PublishConfig struct {
 
 func (f *PublishConfig) create(c *connection, chanReopen chan bool) {
 	var (
-		err     error
-		ch      *amqp.Channel
-		confirm amqp.Confirmation
+		err error
+		ch  *amqp.Channel
 	)
 	defer func() {
 		log.Println("[amqpwrp] closing publish channel")
@@ -128,13 +123,6 @@ func (f *PublishConfig) create(c *connection, chanReopen chan bool) {
 		return
 	}
 
-	err = ch.Confirm(false)
-	if err != nil {
-		return
-	}
-
-	confirmCh := make(chan amqp.Confirmation, 1)
-	ch.NotifyPublish(confirmCh)
 	for {
 		select {
 		case msg, ok := <-c.pubCh:
@@ -145,16 +133,7 @@ func (f *PublishConfig) create(c *connection, chanReopen chan bool) {
 			if err != nil {
 				return
 			}
-			confirm, ok = <-confirmCh
-			if !ok {
-				log.Printf("[amqpwrp] channel resource is closed while listen to confirm\n")
-				log.Println("[amqpwrp] requeue last message")
-				c.pubCh <- msg
-				return
-			}
-			if !confirm.Ack {
-				log.Printf("[amqpwrp] message confirm returned nack\n")
-			}
+
 		case <-c.stop:
 			return
 		}
