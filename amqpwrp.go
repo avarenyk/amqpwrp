@@ -105,7 +105,6 @@ func (f *PublishConfig) create(c *connection, chanReopen chan bool) {
 		ch  *amqp.Channel
 	)
 	defer func() {
-		log.Println("[amqpwrp] closing publish channel")
 		ch.Close()
 		c.wg.Done()
 		if err != nil {
@@ -115,8 +114,6 @@ func (f *PublishConfig) create(c *connection, chanReopen chan bool) {
 			chanReopen <- true
 		}
 	}()
-
-	log.Println("[amqpwrp] creating publish channel")
 
 	ch, err = c.conn.Channel()
 	if err != nil {
